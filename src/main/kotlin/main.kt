@@ -25,8 +25,14 @@ suspend fun watchSubreddits(reddit: Koddit, subRedditList: Array<String>) {
     val mongoCollection = initMongo(System.getenv("mongoConnStr")) ?: exitProcess(1)
     var threads: MutableList<RedditThread> = ArrayList()
     subRedditList.forEach { subReddit ->
-        threads.addAll(reddit.getTopThreads(subReddit, 8, 500))
+        var newThreads = reddit.getTopThreads(subReddit, 10, 500)
+        newThreads.removeAll { thread ->
+            var mongoResult = mongoCollection.find(RedditThread::_id eq thread._id)
+            mongoResult != null
+        }
+        threads.addAll(newThreads)
     }
+    sendThreads(threads)
     writeThreads(threads, mongoCollection)
 }
 
@@ -34,6 +40,10 @@ fun writeThreads(threads: MutableList<RedditThread>, mongoCollection: MongoColle
     threads.forEach {
         mongoCollection?.save(it)
     }
+}
+
+fun sendThreads(threads: MutableList<RedditThread>) {
+    println("send to queue! :)")
 }
 
 fun initMongo(mongoConn: String): MongoCollection<RedditThread>? {
