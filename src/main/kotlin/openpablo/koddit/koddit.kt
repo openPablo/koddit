@@ -1,5 +1,4 @@
 package openpablo.koddit
-
 import PostsResponse
 import RedditPost
 import RedditSession
@@ -18,6 +17,9 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.collections.ArrayList
 
 // json settings
 private val json = Json {
@@ -25,8 +27,11 @@ private val json = Json {
     isLenient = true
     ignoreUnknownKeys = true
 }
-//https://alpscode.com/blog/scripting-with-reddit-api/
-//https://www.reddit.com/r/redditdev/comments/fe75tl/get_all_comments_on_thread_through_json_api/
+//Time format setting
+val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+
+
 class Koddit(private var id: String, private var secret: String) {
     private var client = initReddit(id, secret)
 
@@ -39,25 +44,26 @@ class Koddit(private var id: String, private var secret: String) {
             })
         }
         client = authReddit("bearer " + response.access_token)
-        println("Successfully logged in to Reddit.")
+        println("${time()} Successfully logged in to Reddit.")
     }
 
-    suspend fun getBestThreads(subReddit: String, limitThreads: Int = 10, limitPosts: Int =10): MutableList<RedditThread> {
+    suspend fun getTopThreads(subReddit: String, limitThreads: Int = 10, limitPosts: Int =10): MutableList<RedditThread> {
         var threads: MutableList<RedditThread> = ArrayList()
         val payload = mapOf("limit" to limitThreads.toString())
-        val rawHttp = getReddit("/r/$subReddit/best", payload, client)
+        val rawHttp = getReddit("/r/$subReddit/top/?t=day", payload, client)
         if(rawHttp.status.toString() == "200 OK") {
-            println("API call for threads of $subReddit ...: ${rawHttp.status}")
+            println("${time()} API call for threads of $subReddit ...: ${rawHttp.status}")
             threads = parseThreadJson(rawHttp.receive())
             threads.removeAll{it.stickied == true}
             threads.forEach{thread ->
                 val params = mapOf("limit" to limitPosts.toString())
                 var posts = getPosts(thread,params, client)
+                posts.removeAll{it.depth != 0}
                 posts.removeAll{it.body == null}
                 thread.posts = posts
             }
         } else {
-            println("Failed getting threads from $subReddit, status code: ${rawHttp.status}")
+            println("${time()} Failed getting threads from $subReddit, status code: ${rawHttp.status}")
         }
         return threads
     }
@@ -82,13 +88,12 @@ suspend fun getReddit(
 }
 
 suspend fun getPosts(thread: RedditThread, payload: Map<String, String>?, client: HttpClient): MutableList<RedditPost>{
-    val rawPostHttp = getReddit("/r/${thread.subreddit}/comments/${thread.id}.json", payload, client, "https://reddit.com")
+    val rawPostHttp = getReddit("/r/${thread.subreddit}/comments/${thread._id}.json", payload, client, "https://reddit.com")
     val posts: MutableList<RedditPost> = ArrayList()
     if(rawPostHttp.status.toString() == "200 OK") {
-        println("API call for posts of ${thread.title}...: ${rawPostHttp.status}")
         posts.addAll(parsePostsJson(rawPostHttp.receive()))
     } else {
-        println("Failed getting the posts of thread ${thread.title}")
+        println("${time()} Failed getting the posts of thread ${thread.title}")
     }
     return posts
 }
@@ -131,4 +136,8 @@ private fun authReddit(auth: String): HttpClient {
             header("Authorization", auth)
         }
     }
+}
+
+fun time(): String{
+    return LocalDateTime.now().format(formatter)
 }
