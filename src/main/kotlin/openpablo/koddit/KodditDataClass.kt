@@ -1,3 +1,5 @@
+package openpablo.koddit
+
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -11,8 +13,8 @@ data class ThreadResponse(
     var data: ResponseData
 ) {
     fun getThreads(): MutableList<RedditThread> {
-        var threads: MutableList<RedditThread> = ArrayList()
-        this.data?.children?.forEach {
+        val threads: MutableList<RedditThread> = ArrayList()
+        this.data.children.forEach {
             threads.add(it.data)
         }
         return threads
@@ -92,8 +94,8 @@ data class PostsResponse(
     var data: PostsData
 ) {
     fun getPosts(): MutableList<RedditPost> {
-        var posts: MutableList<RedditPost> = ArrayList()
-        this.data?.children?.forEach {
+        val posts: MutableList<RedditPost> = ArrayList()
+        this.data.children.forEach {
             posts.add(it.data)
         }
         return posts

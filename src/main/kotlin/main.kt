@@ -1,58 +1,36 @@
-import com.mongodb.client.MongoCollection
 import openpablo.koddit.*
-import org.litote.kmongo.*
-import com.mongodb.client.model.InsertOneOptions
-import com.mongodb.client.model.UpdateOptions
-import kotlin.system.exitProcess
 
 suspend fun main() {
     val id = System.getenv("id")
     val secret = System.getenv("secret")
     val username = System.getenv("username")
     val password = System.getenv("password")
+    val mongoConnStr = System.getenv("mongoConnStr")
     val subRedditList = arrayOf("AskReddit", "AmItheAsshole", "relationship_advice", "trueOffMyChest")
 
-    var reddit = Koddit(id, secret)
+    val db  = KodditDataHandler(mongoConnStr)
+    val reddit = Koddit(id, secret)
     reddit.login(username, password)
-
-    //Main fun
-    watchSubreddits(reddit, subRedditList)
+    watchSubreddits(reddit, subRedditList, db, 10, 10)
     reddit.close()
 }
 
-
-suspend fun watchSubreddits(reddit: Koddit, subRedditList: Array<String>) {
-    val mongoCollection = initMongo(System.getenv("mongoConnStr")) ?: exitProcess(1)
-    var threads: MutableList<RedditThread> = ArrayList()
+suspend fun watchSubreddits(
+    reddit: Koddit,
+    subRedditList: Array<String>,
+    db: KodditDataHandler,
+    limitThread: Int,
+    limitPosts: Int
+) {
+    val threads: MutableList<RedditThread> = ArrayList()
     subRedditList.forEach { subReddit ->
-        var newThreads = reddit.getTopThreads(subReddit, 10, 500)
+        val newThreads = reddit.getTopThreads(subReddit, limitThread, limitPosts)
         newThreads.removeAll { thread ->
-            var mongoResult = mongoCollection.find(RedditThread::_id eq thread._id)
-            mongoResult != null
+            db.existsInDb(thread)
         }
         threads.addAll(newThreads)
     }
-    sendThreads(threads)
-    writeThreads(threads, mongoCollection)
+    db.sendThreads(threads)
+    db.writeThreads(threads)
 }
 
-fun writeThreads(threads: MutableList<RedditThread>, mongoCollection: MongoCollection<RedditThread>?) {
-    threads.forEach {
-        mongoCollection?.save(it)
-    }
-}
-
-fun sendThreads(threads: MutableList<RedditThread>) {
-    println("send to queue! :)")
-}
-
-fun initMongo(mongoConn: String): MongoCollection<RedditThread>? {
-    return try {
-        val mongoClient = KMongo.createClient(mongoConn)
-        val database = mongoClient.getDatabase("myFirstDatabase")
-        database.getCollection<RedditThread>()
-    } catch (e: Throwable) {
-        println("Failed initializing database, connection string: $mongoConn")
-        null
-    }
-}

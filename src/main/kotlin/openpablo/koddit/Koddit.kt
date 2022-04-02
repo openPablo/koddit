@@ -1,9 +1,5 @@
 package openpablo.koddit
-import PostsResponse
-import RedditPost
-import RedditSession
-import RedditThread
-import ThreadResponse
+
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.features.auth.Auth
@@ -28,15 +24,13 @@ private val json = Json {
     ignoreUnknownKeys = true
 }
 //Time format setting
-val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-
-
-class Koddit(private var id: String, private var secret: String) {
+class Koddit(id: String, secret: String) {
     private var client = initReddit(id, secret)
 
     suspend fun login(username: String, password: String) {
-        var response: RedditSession = client.post("https://www.reddit.com/api/v1/access_token") {
+        val response: RedditSession = client.post("https://www.reddit.com/api/v1/access_token") {
             body = FormDataContent(Parameters.build {
                 append("username", username)
                 append("password", password)
@@ -57,7 +51,7 @@ class Koddit(private var id: String, private var secret: String) {
             threads.removeAll{it.stickied == true}
             threads.forEach{thread ->
                 val params = mapOf("limit" to limitPosts.toString())
-                var posts = getPosts(thread,params, client)
+                val posts = getPosts(thread,params, client)
                 posts.removeAll{it.depth != 0}
                 posts.removeAll{it.body == null}
                 thread.posts = posts
@@ -81,9 +75,10 @@ suspend fun getReddit(
 ): HttpResponse {
     return client.get(baseUrl + path) {
         method = HttpMethod.Get
-        payload?.forEach { k, v ->
+        payload?.forEach {k, v ->
             parameter(k, v)
         }
+
     }
 }
 
@@ -103,8 +98,8 @@ fun parseThreadJson(rawJson: String): MutableList<RedditThread>{
 }
 
 fun parsePostsJson(rawJson: String): MutableList<RedditPost>{
-    val postsObj: List<PostsResponse> = json.decodeFromString<List<PostsResponse>>(rawJson)
-    var posts: MutableList<RedditPost> = ArrayList()
+    val postsObj: List<PostsResponse> = json.decodeFromString(rawJson)
+    val posts: MutableList<RedditPost> = ArrayList()
     postsObj.forEach{
         posts.addAll(it.getPosts())
     }
