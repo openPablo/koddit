@@ -7,11 +7,13 @@ suspend fun main() {
     val password = System.getenv("password")
     val mongoConnStr = System.getenv("mongoConnStr")
     val subRedditList = arrayOf("AskReddit", "AmItheAsshole", "relationship_advice", "trueOffMyChest")
+    val limitPosts = System.getenv("limitPosts").toInt()
+    val limitThread = System.getenv("limitThread").toInt()
 
     val db  = KodditDataHandler(mongoConnStr)
     val reddit = Koddit(id, secret)
     reddit.login(username, password)
-    watchSubreddits(reddit, subRedditList, db, 10, 10)
+    watchSubreddits(reddit, subRedditList, db, limitThread, limitPosts)
     reddit.close()
 }
 
