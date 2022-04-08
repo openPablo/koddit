@@ -1,20 +1,7 @@
+import com.mongodb.client.MongoDatabase
 import openpablo.koddit.*
 import java.io.File
-import kotlin.random.Random
-
 val workingDir = "/home/pablo/tiktok"
-fun main() {
-    val mongoConnStr = System.getenv("mongoConnStr")
-    val db = RedditDataHandler(mongoConnStr)
-    val thread = db.getThread("tvi4t3")
-
-    if (thread != null) {
-        composeVideo(thread)
-    } else {
-        println("Failed getting reddit thread")
-    }
-
-}
 
 fun composeVideo(thread: RedditThread) {
     val backGroundVid = pickRandomVideo("$workingDir/raw_videos")
@@ -49,5 +36,6 @@ fun addRedditToVid(tiktok: VideoComposer, target: RedditObject): Double {
 }
 
 fun pickRandomVideo(path: String): String {
-    return "$path/${File(path).list().random()}"
+    val fileList = File(path).list().filter { s -> ".part" in s }
+    return "$path/${fileList.random()}"
 }

@@ -130,7 +130,7 @@ data class PostsChildren(
 data class RedditPost(
     @SerialName("id")
     var _id: String,
-    val body: String?,
+    val body: String? = null,
     var body_html: String? = null,
     var author: String? = null,
     var author_fullname: String? = null,

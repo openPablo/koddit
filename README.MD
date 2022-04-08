@@ -2,6 +2,7 @@
 
  * FFmpeg
  * Nvidia cuda drivers if using GPU accelerated video rendering
+ * Geckodriver for taking screenshots
 
 
 #Getting raw videos
