@@ -3,13 +3,20 @@ package openpablo.koddit
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Serializable
+open class RedditObject() {
+    var text: String = ""
+    open var permalink: String = ""
+    open var name: String = ""
+}
+
 //Data classes to hold json API responses
 @Serializable
 data class RedditSession(var access_token: String, var token_type: String, var expires_in: Int, var scope: String)
 
 @Serializable
 data class ThreadResponse(
-    var kind: String? = null,
+    var kind: String,
     var data: ResponseData
 ) {
     fun getThreads(): MutableList<RedditThread> {
@@ -33,20 +40,19 @@ data class ResponseData(
 
 @Serializable
 data class ResponseChildren(
-    var kind: String? = null,
-    var data: RedditThread = RedditThread()
+    var kind: String,
+    var data: RedditThread
 )
 
 @Serializable
 data class RedditThread(
     @SerialName("id")
-    var _id: String? = null,
-    var subreddit: String? = null,
-    var title: String? = null,
+    var _id: String,
+    var subreddit: String,
+    var title: String,
     var selftext: String? = null,
     var selftext_html: String? = null,
     var score: Int? = null,
-    var posts: List<RedditPost>? = null,
     var author_fullname: String? = null,
     var ups: Int? = null,
     var downs: Int? = null,
@@ -54,7 +60,6 @@ data class RedditThread(
     var gilded: Int? = null,
     var subreddit_name_prefixed: String? = null,
     var pwls: Int? = null,
-    var name: String? = null,
     var quarantine: Boolean? = null,
     var subreddit_type: String? = null,
     var total_awards_received: Int? = null,
@@ -76,21 +81,24 @@ data class RedditThread(
     var subreddit_id: String? = null,
     var author: String? = null,
     var num_comments: Int? = null,
-    var permalink: String? = null,
     var stickied: Boolean? = null,
     var url: String? = null,
     var subreddit_subscribers: Int? = null,
     var created_utc: Double? = null,
     var num_crossposts: Int? = null,
     var is_video: Boolean? = null,
-
-)
+    var posts: List<RedditPost> = ArrayList()
+) : RedditObject() {
+    init {
+        text = title + selftext
+    }
+}
 
 
 //Posts data classes!
 @Serializable
 data class PostsResponse(
-    var kind: String? = null,
+    var kind: String,
     var data: PostsData
 ) {
     fun getPosts(): MutableList<RedditPost> {
@@ -114,16 +122,16 @@ data class PostsData(
 
 @Serializable
 data class PostsChildren(
-    var kind: String? = null,
-    var data: RedditPost = RedditPost()
+    var kind: String,
+    var data: RedditPost
 )
 
 @Serializable
 data class RedditPost(
     @SerialName("id")
-    var _id: String? = null,
-    var body: String?  = null,
-    var body_html: String?  = null,
+    var _id: String,
+    val body: String?,
+    var body_html: String? = null,
     var author: String? = null,
     var author_fullname: String? = null,
     var score: Int? = null,
@@ -137,7 +145,6 @@ data class RedditPost(
     var subreddit_name_prefixed: String? = null,
     var depth: Int? = null,
     var pwls: Int? = null,
-    var name: String? = null,
     var quarantine: Boolean? = null,
     var subreddit_type: String? = null,
     var total_awards_received: Int? = null,
@@ -161,11 +168,18 @@ data class RedditPost(
     var subreddit_id: String? = null,
     var num_duplicates: Int? = null,
     var num_comments: Int? = null,
-    var permalink: String? = null,
     var stickied: Boolean? = null,
     var url: String? = null,
     var subreddit_subscribers: Int? = null,
     var created_utc: Double? = null,
     var num_crossposts: Int? = null,
     var is_video: Boolean? = null,
-)
+) : RedditObject() {
+    init {
+        if (body != null) {
+            text = body
+        } else {
+            text = ""
+        }
+    }
+}

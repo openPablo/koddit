@@ -5,8 +5,9 @@ import com.mongodb.client.MongoCollection
 import com.mongodb.client.MongoDatabase
 import kotlin.system.exitProcess
 import org.litote.kmongo.*
+import java.io.File
 
-class KodditDataHandler(mongoConn: String) {
+class RedditDataHandler (mongoConn: String) {
     var mongoClient: MongoClient? = null
     var database: MongoDatabase? = null
     var collection: MongoCollection<RedditThread>? = null
@@ -20,7 +21,15 @@ class KodditDataHandler(mongoConn: String) {
     }
 
     fun sendThreads(threads: MutableList<RedditThread>) {
+        File("output.txt").printWriter().use { out ->
+            threads.forEach {
+                out.println(it._id)
+            }
+        }
         println("send to queue! :)")
+    }
+    fun getThread(id: String): RedditThread? {
+        return collection?.findOne(RedditThread::_id eq id)
     }
     fun existsInDb(thread: RedditThread): Boolean{
         val mongoResult = collection?.countDocuments(RedditThread::_id eq thread._id)

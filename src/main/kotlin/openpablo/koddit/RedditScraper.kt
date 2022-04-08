@@ -7,6 +7,7 @@ import io.ktor.client.features.*
 import io.ktor.client.features.auth.providers.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
+import io.ktor.client.features.logging.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import io.ktor.client.request.*
@@ -26,7 +27,7 @@ private val json = Json {
 //Time format setting
 val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-class Koddit(id: String, secret: String) {
+class RedditScraper(id: String, secret: String) {
     private var client = initReddit(id, secret)
 
     suspend fun login(username: String, password: String) {
@@ -54,6 +55,8 @@ class Koddit(id: String, secret: String) {
                 val posts = getPosts(thread,params, client)
                 posts.removeAll{it.depth != 0}
                 posts.removeAll{it.body == null}
+                posts.removeAll{it.stickied == true}
+                posts.removeAll{it.removed_by != null}
                 thread.posts = posts
             }
         } else {
@@ -111,6 +114,7 @@ fun initReddit(auth: String, secret: String = ""): HttpClient {
         install(JsonFeature) {
             serializer = KotlinxSerializer(json)
         }
+        install(Logging)
         install(Auth) {
             basic {
                 credentials {
@@ -126,6 +130,7 @@ private fun authReddit(auth: String): HttpClient {
         install(JsonFeature) {
             serializer = KotlinxSerializer(json)
         }
+        install(Logging)
         defaultRequest {
             header("User-Agent", "koddit by koddit123")
             header("Authorization", auth)

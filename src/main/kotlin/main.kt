@@ -6,21 +6,21 @@ suspend fun main() {
     val username = System.getenv("username")
     val password = System.getenv("password")
     val mongoConnStr = System.getenv("mongoConnStr")
-    val subRedditList = arrayOf("AskReddit", "AmItheAsshole", "relationship_advice", "trueOffMyChest")
     val limitPosts = System.getenv("limitPosts").toInt()
     val limitThread = System.getenv("limitThread").toInt()
+    val subRedditList = System.getenv("subRedditList").split(" ").toTypedArray()
 
-    val db  = KodditDataHandler(mongoConnStr)
-    val reddit = Koddit(id, secret)
+    val db  = RedditDataHandler(mongoConnStr)
+    val reddit = RedditScraper(id, secret)
     reddit.login(username, password)
     watchSubreddits(reddit, subRedditList, db, limitThread, limitPosts)
     reddit.close()
 }
 
 suspend fun watchSubreddits(
-    reddit: Koddit,
+    reddit: RedditScraper,
     subRedditList: Array<String>,
-    db: KodditDataHandler,
+    db: RedditDataHandler,
     limitThread: Int,
     limitPosts: Int
 ) {
