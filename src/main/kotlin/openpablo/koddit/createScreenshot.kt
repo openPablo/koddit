@@ -2,18 +2,16 @@ package openpablo.koddit
 
 import org.openqa.selenium.*
 import org.openqa.selenium.firefox.FirefoxDriver
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
 import java.io.File
-import java.time.Duration
-import org.openqa.selenium.OutputType
+
 
 //Requires gecko driver... 'which geckodriver'
-class RedditScreenshot(geckoDriverPath1: String){
+class createScreenshot(geckoDriverPath1: String){
     var driver = FirefoxDriver()
     val baseUrl = "https://www.reddit.com"
     init {
         System.setProperty("webdriver.gecko.driver", geckoDriverPath1)
+        System.setProperty(FirefoxDriver.SystemProperty.BROWSER_LOGFILE, "/dev/null")
         driver[baseUrl]
         clickIfExists("//*[text()[contains(., 'Accept all')]]")
     }
@@ -22,14 +20,14 @@ class RedditScreenshot(geckoDriverPath1: String){
         val dest = File("$path/$id.png" )
         if (!isFileExists(dest)) {
             driver[baseUrl + url]
-            val is18Plus = !driver.findElements(By.xpath("//*[text()[contains(., 'You must be at least eighteen years old to view this content. Are you over eighteen and willing to see adult content?')]]")).isEmpty()
+            val is18Plus = driver.findElements(By.xpath("//*[text()[contains(., 'You must be at least eighteen years old to view this content. Are you over eighteen and willing to see adult content?')]]")).isNotEmpty()
             if(is18Plus) {
                 clickIfExists("//*[text()[contains(., 'Yes')]]")
                 clickIfExists("//*[text()[contains(., 'Click to see nsfw')]]")
             }
             val htmlElement = driver.findElements(By.id(id))
 
-            var screenshot = (htmlElement[0] as TakesScreenshot).getScreenshotAs(OutputType.FILE)
+            val screenshot = (htmlElement[0] as TakesScreenshot).getScreenshotAs(OutputType.FILE)
 
             screenshot.copyTo(dest)
             println("Saved pic to $path/$id.png")

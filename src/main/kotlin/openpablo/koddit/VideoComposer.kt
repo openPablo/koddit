@@ -1,12 +1,4 @@
-import javax.sound.sampled.AudioFileFormat
-import kotlin.math.ceil
-import kotlin.math.roundToInt
 import kotlin.system.measureTimeMillis
-import java.io.File;
-import java.io.IOException;
-import java.io.SequenceInputStream;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 
 //Uses FFmpeg --> high performance + gpu accelerated
 
@@ -17,27 +9,37 @@ class VideoComposer(val filename: String, val aspect_ratio: Double, var maxDurat
     var width = 0
     var duration = 0.00
     var vidIsFull = false      //stop accepting vids if attempted to surpass maxDuration
+    var skippedPosts = 0
 
     fun addAudio(audioFile: String): Double {
-        println("audifolie is: $audioFile")
-        val clipLength =
-            execute("ffprobe -i $audioFile -show_entries format=duration -v quiet -of csv=\"p=0\"").toDouble()
+        val clipLength = getLength(audioFile)
         if ((clipLength + duration) <= maxDuration) {
-            println("added audiofile!")
             audioFiles.add(audioFile)
             duration += clipLength
         }else {
-            vidIsFull = true
+            skipPost()
+            return 0.00
         }
         return clipLength
     }
-
+    fun getLength(audioFile: String): Double{
+        return execute("ffprobe -i $audioFile -show_entries format=duration -v quiet -of csv=\"p=0\"").toDouble()
+    }
+    fun skipPost(){
+        skippedPosts += 1
+        if (skippedPosts >= 3){
+            vidIsFull = true
+        }
+    }
     fun addImage(imageFile: String, Duration: Double) {
         images[imageFile] = Duration
     }
 
-    private fun concatAudio(outputFile: String) {
-        var cmd = "ffmpeg -y"
+    private fun concatAudio(outputFile: String, gpuAccelerated: Boolean) {
+        var cmd = "ffmpeg -y "
+        if (gpuAccelerated) {
+            cmd += "-hwaccel cuda "
+        }
         audioFiles.forEach { audio ->
             cmd += "-i $audio "
         }
@@ -65,8 +67,8 @@ class VideoComposer(val filename: String, val aspect_ratio: Double, var maxDurat
         if (gpuAccelerated) {
             cmd += "-hwaccel cuda "
         }
-        var tmpAudioFile = "/tmp/tmpConcatAudio.wav"
-        concatAudio(tmpAudioFile)
+        val tmpAudioFile = "/tmp/tmpConcatAudio.wav"
+        concatAudio(tmpAudioFile, gpuAccelerated)
 
         cmd += "-i $filename -i $tmpAudioFile "      //sets input files,
         images.forEach { image ->
@@ -75,16 +77,16 @@ class VideoComposer(val filename: String, val aspect_ratio: Double, var maxDurat
         cmd += "-filter_complex \" "                 //Start setting the complex filters
         cmd += cropPortrait(aspect_ratio)            //See cropPortrait
 
-        var imageNr =
-            2                                  //ImageNr starts at 2 because the base vid and audio file are 0 and 1
+        var imageNr = 2                                  //ImageNr starts at 2 because the base vid and audio file are 0 and 1
         var startTime = 0.00
+        val length = images.size + imageNr - 1
         images.forEach { image ->
             val imageEndTime = startTime + image.value
             cmd += " [$imageNr]scale=$width:-1 [pic$imageNr]; " +  //Scales the image to the video width
                     "[vid$imageNr][pic$imageNr] overlay = " +
                     "(W-w)/2:(H-h)/2:enable='between(t,$startTime,${imageEndTime})' " +  //sets image in center of vid
                     "[vid${imageNr + 1}] "
-            if (imageEndTime <= duration) {       //check because the last item can't have a ';'
+            if (imageNr < length) {       //check because the last item can't have a ';'
                 cmd += ";"
             }
             imageNr += 1
@@ -96,19 +98,17 @@ class VideoComposer(val filename: String, val aspect_ratio: Double, var maxDurat
                 "-t $duration " +                               //sets video length
                 " $output"
         println("Rendering: ")
+        val elapsed = measureTimeMillis {
         execute(cmd)
+        }
+        println("${elapsed / 1000} seconds spent")
     }
 
     private fun execute(cmd: String): String {
         println("Executing: $cmd")
         val pb = ProcessBuilder("sh", "-c", cmd)
         val process = pb.start()
-        var res: String
-        val elapsed = measureTimeMillis {
-            res = String(process.inputStream.readAllBytes())
-        }
-        println("${elapsed / 1000} seconds spent")
-        return res
+        return String(process.inputStream.readAllBytes())
     }
 
 }

@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-open class RedditObject() {
+open class RedditObject {
     var text: String = ""
     open var permalink: String = ""
     open var name: String = ""
@@ -91,6 +91,7 @@ data class RedditThread(
 ) : RedditObject() {
     init {
         text = title + selftext
+        text = removeUrl(text)
     }
 }
 
@@ -178,8 +179,13 @@ data class RedditPost(
     init {
         if (body != null) {
             text = body
+            text = removeUrl(text)
         } else {
             text = ""
         }
     }
+}
+
+private fun removeUrl(commentstr: String): String {
+    return commentstr.replace("http.*?(\\Z|\\s)".toRegex(), "")
 }

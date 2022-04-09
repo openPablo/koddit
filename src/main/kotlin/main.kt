@@ -1,27 +1,29 @@
 import openpablo.koddit.*
 import java.io.File
 
-suspend fun main() {
+fun main() {
     val id = System.getenv("id")
     val secret = System.getenv("secret")
     val username = System.getenv("username")
     val password = System.getenv("password")
     val mongoConnStr = System.getenv("mongoConnStr")
-    val limitPosts = System.getenv("limitPosts").toInt()
-    val limitThread = System.getenv("limitThread").toInt()
     val subRedditList = "AskReddit relationship_advice amItheAsshole".split(" ").toTypedArray()
-
 
 
     val db  = RedditDataHandler(mongoConnStr)
     val reddit = RedditScraper(id, secret)
-    reddit.login(username, password)
-    val threads = scrapeSubreddits(reddit, subRedditList, db, limitThread, limitPosts)
-    reddit.close()
+    //reddit.login(username, password)
+    //scrapeSubreddits(reddit, subRedditList, db, 10, 300)
+    //reddit.close()
+    val snapper = createScreenshot("/usr/bin/geckodriver")
 
-    threads.forEach{thread->
-        composeVideo(thread)
+    File("output.txt").readLines().forEach {
+        val thread = db.getThread(it)
+        if (thread != null){
+            composeVideo(thread, snapper)
+        }
     }
+    snapper.close()
 }
 
 suspend fun scrapeSubreddits(

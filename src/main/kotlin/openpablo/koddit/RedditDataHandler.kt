@@ -6,8 +6,10 @@ import com.mongodb.client.MongoDatabase
 import kotlin.system.exitProcess
 import org.litote.kmongo.*
 import java.io.File
+import java.io.FileOutputStream
+import java.io.PrintWriter
 
-class RedditDataHandler (mongoConn: String) {
+class RedditDataHandler(mongoConn: String) {
     var mongoClient: MongoClient? = null
     var database: MongoDatabase? = null
     var collection: MongoCollection<RedditThread>? = null
@@ -21,26 +23,27 @@ class RedditDataHandler (mongoConn: String) {
     }
 
     fun sendThreads(threads: MutableList<RedditThread>) {
-        File("output.txt").printWriter().use { out ->
-            threads.forEach {
-                out.println(it._id)
-            }
+        threads.forEach {
+            saveId("output.txt", it._id)
         }
         println("send to queue! :)")
     }
+
     fun getThread(id: String): RedditThread? {
         return collection?.findOne(RedditThread::_id eq id)
     }
-    fun existsInDb(thread: RedditThread): Boolean{
+
+    fun existsInDb(thread: RedditThread): Boolean {
         val mongoResult = collection?.countDocuments(RedditThread::_id eq thread._id)
-        return if (mongoResult is Long){
+        return if (mongoResult is Long) {
             mongoResult > 0
         } else {
             false
         }
     }
+
     init {
-        try{
+        try {
             mongoClient = KMongo.createClient(mongoConn)
             database = mongoClient?.getDatabase("myFirstDatabase")
             collection = database?.getCollection()
@@ -49,4 +52,15 @@ class RedditDataHandler (mongoConn: String) {
             exitProcess(1)
         }
     }
+}
+
+fun saveId(filename: String, id: String) {
+    val pw = PrintWriter(
+        FileOutputStream(
+            File(filename),
+            true
+        )
+    )
+    pw.append("$id\n")
+    pw.close()
 }
